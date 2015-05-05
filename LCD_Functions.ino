@@ -12,7 +12,7 @@ void initiateLCD()                                //Initiates LCD
 
 void startLCD()
 {
-  lcd.begin (16,2);                             //Settings for 20 x 4 LCD module. For the 20x2 module change to (20,2)
+  lcd.begin (16,2);                             //Settings for 16 x 2 LCD module. For the 16x2 module change to (20,4)
   lcd.setBacklightPin(3,POSITIVE);
   lcd.setBacklight(HIGH);
   delay(50);
@@ -23,32 +23,42 @@ void startLCD()
 void displayDistanceTo(int times)
 {
   int i=times;
-  while (i>0)
+  while (i>0, i--)
   {
-  if (!distanceToTarget <= 1000) {
+  if (distanceToTarget <= 1000) {
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print(F("You are now"));
+      lcd.print(F("You are now "));
       lcd.setCursor(0,1);
       lcd.print(distanceToTarget);
       lcd.print(F(" m away."));
+      Serial.print(F("You are now "));
+      Serial.print(distanceToTarget);
+      Serial.println(F(" m away."));
     }
-    if (!distanceToTarget > 1000) {
+    if (distanceToTarget > 1000) {
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print(F("You are now"));
+      lcd.print(F("You are now "));
       lcd.setCursor(0,1);
       lcd.print(distanceToTarget / 1000, DEC);
       lcd.print(F("."));
       lcd.print((distanceToTarget % 1000) / 100, DEC);
       lcd.print(F(" km away."));
+      Serial.print(F("You are now "));
+      Serial.print(distanceToTarget / 1000, DEC);
+      Serial.print(F("."));
+      Serial.print((distanceToTarget % 1000) / 100, DEC);
+      Serial.println(F(" km away."));
     }
   delay(3000);
+  }
   lcd.clear();
   lcd.setCursor(0,0);
   lcd.print(F("Tries left:"));
   lcd.setCursor(0,1);
-  lcd.print(tries);                //LCD shows distance
-  times--;
-  }
+  tries--;
+  lcd.print(tries);                //LCD shows tries
+  Serial.print(F("Tries left:"));
+  Serial.println(tries);
 }
