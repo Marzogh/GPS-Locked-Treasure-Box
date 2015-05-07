@@ -38,3 +38,5 @@ void checkLidState()
     while (1);
   }
 }
+
+
