@@ -1,5 +1,7 @@
 //#define LOCK
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Libraries*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+#include <EEPROMex.h>                       // For EEPROM
+#include <EEPROMVar.h>                      // For EEPROM
 #include <TinyGPS++.h>                      // For gps
 #include <SoftwareSerial.h>                 // For communicating with the gps
 #include <math.h>                           // used by: GPS
@@ -28,11 +30,30 @@ const int LEDPin = 9;
 static const int RXPin = 3, TXPin = 2;
 static const uint32_t GPSBaud = 9600;
 //static const double targetLat = 51.508131, targetLong = -0.128002;
-static const double targetLat = -27.486890, targetLong = 153.013860;
+struct coordinates {
+  double latitude;
+  double longitude;
+};
+
+coordinates waypoint1;
+coordinates waypoint2;
+coordinates waypoint3;
+coordinates target;
+
+struct addresses {
+  int latitude;
+  int longitude;
+};
+
+addresses address1;
+addresses address2;
+addresses address3;
+
 unsigned long distance;
-uint8_t tries = 101;
+byte currentQuest, questAddress;
+byte tries = 101;
 #ifdef Lock
-uint8_t engage = 0, disengage = 180;
+byte engage = 0, disengage = 180;
 #endif
 
 // The TinyGPS++ object
@@ -52,75 +73,101 @@ void setup()
   Serial.begin(115200);
   ss.begin(9600);
   startLCD();
+  getAddresses();
+  if (!coordinateCheck()) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(F("EEPROM error!!!"));
+    lcd.setCursor(0, 0);
+    lcd.print(F("Call support now"));
+  }
+  currentQuest = EEPROM.read(questAddress);
 }
 
 void loop()
 {
-  //static const double targetLat = 51.508131, targetLong = -0.128002;
 
-   distance =
-     (unsigned long)TinyGPSPlus::distanceBetween(
-       gps.location.lat(),
-       gps.location.lng(),
-       targetLat,
-       targetLong);
-   printInt(distance, gps.location.isValid(), 9);
-   Serial.println();
-   uint8_t i = 3;
-   while (i > 0, i--) {
-     if (distance <= waypointTolerance) {
-       lcd.clear();
-       lcd.setCursor(0, 0);
-       lcd.print(F("You have arrived!"));
-       Serial.println(F("You have arrived!"));
-     }
-     else if (distance <= 1000) {
-       lcd.clear();
-       lcd.setCursor(0, 0);
-       lcd.print(F("You are now "));
-       lcd.setCursor(0, 1);
-       lcd.print(distance);
-       lcd.print(F(" m away."));
-       Serial.print(F("You are now "));
-       Serial.print(distance);
-       Serial.println(F(" m away."));
-     }
-     else if (distance < 5000 && distance > 1000) {
-       lcd.clear();
-       lcd.setCursor(0, 0);
-       lcd.print(F("You are now "));
-       lcd.setCursor(0, 1);
-       lcd.print(distance / 1000, DEC);
-       lcd.print(F("."));
-       lcd.print((distance % 1000) / 100, DEC);
-       lcd.print(F(" km away."));
-       Serial.print(F("You are now "));
-       Serial.print(distance / 1000, DEC);
-       Serial.print(F("."));
-       Serial.print((distance % 1000) / 100, DEC);
-       Serial.println(F(" km away."));
-     }
-     else {
-       lcd.clear();
-       lcd.setCursor(0, 0);
-       lcd.print(F("Waiting for GPS"));
-       Serial.println(F("Waiting for GPS"));
-     }
+  switch (currentQuest) {
+    case 1:
 
-     delay(2000);
-   }
-   lcd.clear();
-   lcd.setCursor(0, 0);
-   lcd.print(F("Tries left:"));
-   lcd.setCursor(0, 1);
-   tries--;
-   lcd.print(tries);                //LCD shows tries
-   Serial.print(F("Tries left:"));
-   Serial.println(tries);
+    break;
 
-   //displayDistanceTo(3);
-   smartDelay(1000);
+    case 2:
 
-   if (millis() > 5000 && gps.charsProcessed() < 10)
-     Serial.println(F("No GPS data received: check wiring"));
+    break;
+
+    case 3:
+
+    break;
+
+    default:
+
+    break;
+  }
+
+  distance =
+    (unsigned long)TinyGPSPlus::distanceBetween(
+      gps.location.lat(),
+      gps.location.lng(),
+      targetLat,
+      targetLong);
+  printInt(distance, gps.location.isValid(), 9);
+  Serial.println();
+  uint8_t i = 3;
+  while (i > 0, i--) {
+    if (distance <= waypointTolerance) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("You have arrived!"));
+      Serial.println(F("You have arrived!"));
+    }
+    else if (distance <= 1000) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("You are now "));
+      lcd.setCursor(0, 1);
+      lcd.print(distance);
+      lcd.print(F(" m away."));
+      Serial.print(F("You are now "));
+      Serial.print(distance);
+      Serial.println(F(" m away."));
+    }
+    else if (distance < 5000 && distance > 1000) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("You are now "));
+      lcd.setCursor(0, 1);
+      lcd.print(distance / 1000, DEC);
+      lcd.print(F("."));
+      lcd.print((distance % 1000) / 100, DEC);
+      lcd.print(F(" km away."));
+      Serial.print(F("You are now "));
+      Serial.print(distance / 1000, DEC);
+      Serial.print(F("."));
+      Serial.print((distance % 1000) / 100, DEC);
+      Serial.println(F(" km away."));
+    }
+    else {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("Waiting for GPS"));
+      Serial.println(F("Waiting for GPS"));
+    }
+
+    delay(2000);
+  }
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Tries left:"));
+  lcd.setCursor(0, 1);
+  tries--;
+  lcd.print(tries);                //LCD shows tries
+  Serial.print(F("Tries left:"));
+  Serial.println(tries);
+
+  //displayDistanceTo(3);
+  smartDelay(1000);
+
+  if (millis() > 5000 && gps.charsProcessed() < 10)
+    Serial.println(F("No GPS data received: check wiring"));
 }
