@@ -49,3 +49,17 @@ void displayInfo()
 
   Serial.println();
 }
+
+long getDistance()
+{
+  long distance =
+    (unsigned long)TinyGPSPlus::distanceBetween(
+      gps.location.lat(),
+      gps.location.lng(),
+      target.latitude,
+      target.longitude);
+  printInt(distance, gps.location.isValid(), 9);
+  Serial.println();
+  return distance;
+}
+

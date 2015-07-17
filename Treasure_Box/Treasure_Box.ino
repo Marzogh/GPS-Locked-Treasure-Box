@@ -15,7 +15,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Variables*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
 //Pins & Definitions
-#define waypointTolerance  50             // tolerance in meters to waypoint; once within this tolerance, will advance to the next waypoint
+#define waypointTolerance  200             // tolerance in meters to quest; once within this tolerance, will advance to the next quest
 const int lidSensor = 5;                        // Pin connected to lid open sensor
 #ifdef Lock
 const int servoPin = 9;
@@ -34,10 +34,6 @@ struct coordinates {
   double latitude;
   double longitude;
 };
-
-coordinates waypoint1;
-coordinates waypoint2;
-coordinates waypoint3;
 coordinates target;
 
 struct addresses {
@@ -48,6 +44,9 @@ struct addresses {
 addresses address1;
 addresses address2;
 addresses address3;
+addresses address4;
+addresses address5;
+addresses address6;
 
 unsigned long distance;
 byte currentQuest, questAddress;
@@ -86,33 +85,74 @@ void setup()
 
 void loop()
 {
-
   switch (currentQuest) {
     case 1:
-
+    target.latitude = EEPROM.read(address1.latitude);
+    target.longitude = EEPROM.read(address1.longitude);
+    getDistance();
+    if (distance <= waypointTolerance) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("Quest1 complete!"));
+      Serial.println(F("Quest 1 complete!"));
+      EEPROM.update(questAddress, 2);
+      currentQuest = EEPROM.read(questAddress);
+    }
+    else {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("Can you hear the"));
+      lcd.setCursor(0, 0);
+      lcd.print(F("music in the Valley?"));
+      Serial.println(F("Can you hear the music in the Valley?"));
+      Serial.println(F("Go to where you first met in the Valley and get a beer!"));
+      smartDelay(5000);
+    }
     break;
 
     case 2:
-
+    target.latitude = EEPROM.read(address2.latitude);
+    target.longitude = EEPROM.read(address2.longitude);
+    getDistance();
     break;
 
     case 3:
-
+    target.latitude = EEPROM.read(address3.latitude);
+    target.longitude = EEPROM.read(address3.longitude);
+    getDistance();
     break;
 
-    default:
-
+    case 4:
+    target.latitude = EEPROM.read(address4.latitude);
+    target.longitude = EEPROM.read(address4.longitude);
+    getDistance();
     break;
+
+    case 5:
+    target.latitude = EEPROM.read(address5.latitude);
+    target.longitude = EEPROM.read(address5.longitude);
+    getDistance();
+    break;
+
+    case 6:
+    target.latitude = EEPROM.read(address6.latitude);
+    target.longitude = EEPROM.read(address6.longitude);
+    getDistance();
+    break;
+
+    /*default:
+
+    break;*/
   }
 
-  distance =
+  /*distance =
     (unsigned long)TinyGPSPlus::distanceBetween(
       gps.location.lat(),
       gps.location.lng(),
-      targetLat,
-      targetLong);
+      target.latitude,
+      target.longitude);
   printInt(distance, gps.location.isValid(), 9);
-  Serial.println();
+  Serial.println();*/
   uint8_t i = 3;
   while (i > 0, i--) {
     if (distance <= waypointTolerance) {
