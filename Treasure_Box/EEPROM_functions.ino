@@ -14,6 +14,7 @@ void getAddresses()
   address6.longitude = EEPROM.getAddress(sizeof(double));
   questAddress       = EEPROM.getAddress(sizeof(byte));
 }
+
 bool coordinateCheck()
 {
   getAddresses();
