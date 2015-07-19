@@ -10,8 +10,6 @@ void getAddresses()
   address4.longitude = EEPROM.getAddress(sizeof(double));
   address5.latitude  = EEPROM.getAddress(sizeof(double));
   address5.longitude = EEPROM.getAddress(sizeof(double));
-  address6.latitude  = EEPROM.getAddress(sizeof(double));
-  address6.longitude = EEPROM.getAddress(sizeof(double));
   questAddress       = EEPROM.getAddress(sizeof(byte));
 }
 

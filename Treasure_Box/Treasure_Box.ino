@@ -44,7 +44,6 @@ addresses address2;
 addresses address3;
 addresses address4;
 addresses address5;
-addresses address6;
 
 struct dateTime {
   int Year;
@@ -137,7 +136,7 @@ void loop()
                    gps.location.lng(),
                    target.latitude,
                    target.longitude);
-      if (distance <= waypointTolerance) {
+      if (distance <= waypointTolerance*3) {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(F("Quest 2 complete!"));
@@ -176,7 +175,7 @@ void loop()
                    gps.location.lng(),
                    target.latitude,
                    target.longitude);
-      if (distance <= waypointTolerance) {
+      if (distance <= waypointTolerance*15) {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(F("Quest 3 complete!"));
@@ -215,7 +214,7 @@ void loop()
                    gps.location.lng(),
                    target.latitude,
                    target.longitude);
-      if (distance <= waypointTolerance) {
+      if (distance <= waypointTolerance*5) {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(F("Quest 4 complete!"));
@@ -260,13 +259,13 @@ void loop()
         lcd.print(F("Woohoo!"));
         lcd.setCursor(1, 1);
         lcd.print(F("Congratulations!!!"));
+        lock.write(disengage);
 #ifdef SERIALECHO
         Serial.println(F("All quests completed successfully!!!"));
 #endif
         EEPROM.update(questAddress, 6);
         currentQuest = EEPROM.read(questAddress);
         smartDelay(2000);
-        lock.write(disengage);
       }
       else {
         for (int i = 3; i >= 0; i--) {
