@@ -16,7 +16,7 @@
 
 //Pins, Definitions & Constants
 #define GPSECHO  false
-//#define SERIALECHO true
+#define SERIALECHO true
 #define waypointTolerance  200             // Tolerance in meters to quest; once within this tolerance, will advance to the next quest
 const int lidSensor = 5;                   // Pin connected to lid open sensor
 #ifdef Lock
@@ -319,6 +319,7 @@ void loop()
     lcd.print(F("No GPS data received"));
     lcd.setCursor(4, 2);
     lcd.print(F("Check Wiring"));
+    smartDelay(2000);
 #ifdef SERIALECHO
     Serial.println(F("No GPS data received: check wiring"));
 #endif
