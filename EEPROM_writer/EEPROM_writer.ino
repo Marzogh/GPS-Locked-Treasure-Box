@@ -23,7 +23,8 @@ addresses Address4;
 addresses Address5;
 
 byte questAddress, yearAddress, monthAddress, dateAddress,
-     currentAttempts, quest1Attempts, quest2Attempts, quest3Attempts, quest4Attempts, quest5Attempts;
+     currentAttempts, quest1Attempts, quest2Attempts, quest3Attempts, quest4Attempts, quest5Attempts,
+     distanceClueBoolean;
 byte resetAttempts = 0;
 
 void setup() {
@@ -59,6 +60,7 @@ void getAddresses()
   quest3Attempts = EEPROM.getAddress(sizeof(byte));
   quest4Attempts = EEPROM.getAddress(sizeof(byte));
   quest5Attempts = EEPROM.getAddress(sizeof(byte));
+  distanceClueBoolean = EEPROM.getAddress(sizeof(byte));
 
   Serial.println("Addresses");
   Serial.println(questAddress);
@@ -81,6 +83,7 @@ void getAddresses()
   Serial.println(quest3Attempts);
   Serial.println(quest4Attempts);
   Serial.println(quest5Attempts);
+  Serial.println(distanceClueBoolean);
 }
 
 void updateValues()
@@ -96,7 +99,7 @@ void updateValues()
   quest5.latitude  = -27.391034;
   quest5.longitude = 153.008227;
 
-  EEPROM.updateByte(questAddress, 1);
+  EEPROM.updateByte(questAddress, 100);
   EEPROM.updateInt(yearAddress, 2015);
   EEPROM.updateByte(monthAddress, 8);
   EEPROM.updateByte(dateAddress, 8);
@@ -116,6 +119,7 @@ void updateValues()
   EEPROM.updateByte(quest3Attempts, resetAttempts);
   EEPROM.updateByte(quest4Attempts, resetAttempts);
   EEPROM.updateByte(quest5Attempts, resetAttempts);
+  EEPROM.updateByte(distanceClueBoolean, 0);
 
   Serial.println("Values");
   Serial.println(EEPROM.readByte(questAddress));
@@ -138,4 +142,5 @@ void updateValues()
   Serial.println(EEPROM.readByte(quest3Attempts));
   Serial.println(EEPROM.readByte(quest4Attempts));
   Serial.println(EEPROM.readByte(quest5Attempts));
+  Serial.println(EEPROM.readByte(distanceClueBoolean));
 }

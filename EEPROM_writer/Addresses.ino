@@ -19,4 +19,5 @@
  * quest3Attempts         =   48
  * quest4Attempts         =   49
  * quest5Attempts         =   50
+ * distanceClueBoolean    =   51
  */

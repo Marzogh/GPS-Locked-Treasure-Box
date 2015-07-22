@@ -1,4 +1,3 @@
-#define Lock true
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Libraries*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 #include <EEPROMex.h>                       // For EEPROM
 #include <EEPROMVar.h>                      // For EEPROM
@@ -8,9 +7,7 @@
 #include <Wire.h>                           // For I2C devices
 #include <LCD.h>                            // For LCD display
 #include <LiquidCrystal_I2C.h>              // For LCD display
-#ifdef Lock
 #include <Servo.h>                          // For locking servo
-#endif
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Variables*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
@@ -18,12 +15,11 @@
 //#define GPSECHO
 #define SERIALECHO
 #define waypointTolerance  200             // Tolerance in meters to quest; once within this tolerance, will advance to the next quest
-const int lidSensor = 5;                   // Pin connected to lid open sensor
-#ifdef Lock
+#define maxAttempts 25                     // Maximum number of attempts before distance to target is displayed
+//const int lidSensor = 5;                   // Pin connected to lid open sensor
 const int servoPin = 9;
 Servo lock;
 const byte engage = 0, disengage = 180;
-#endif
 static const int RXPin = 3, TXPin = 2;     //Connect TX of GPS to 3 and RX of GPS to 2
 static const int GPSBaud = 9600;
 
@@ -63,7 +59,9 @@ dateTime timeElapsed;
 unsigned long distance;
 byte currentQuest, attempts;
 byte questAddress, yearAddress, monthAddress, dateAddress,
-     currentAttempts, quest1Attempts, quest2Attempts, quest3Attempts, quest4Attempts, quest5Attempts;
+     currentAttempts, quest1Attempts, quest2Attempts, quest3Attempts, quest4Attempts, quest5Attempts,
+     distanceClueBoolean;
+bool distanceClue;
 int years, months, days;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Objects*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -111,18 +109,42 @@ void setup()
     attempts++;
     EEPROM.updateByte(currentAttempts, attempts);
 
-    #ifdef SERIALECHO
+    if (attempts >= maxAttempts)
+      EEPROM.updateBit(distanceClueBoolean, 0, 1);
+    else
+      EEPROM.updateBit(distanceClueBoolean, 0, 0);
+
+#ifdef SERIALECHO
     Serial.print(F("Current Tries: "));
     Serial.println(EEPROM.read(currentAttempts));
-    #endif
+#endif
   }
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Loop*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 void loop()
 {
+  distanceClue = EEPROM.readBit(distanceClueBoolean, 0);
   updateDateTime();
   switch (currentQuest) {
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 0*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+    case 100:
+      EEPROM.updateByte(questAddress, 0);
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 0*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+    case 0:
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("5 quests to go, with"));
+      lcd.setCursor(0, 1);
+      lcd.print(F("fond memories galore"));
+      lcd.setCursor(1, 2);
+      lcd.print(F("Hope you have fun!"));
+      lcd.setCursor(0, 3);
+      lcd.print(F("Here we go...."));
+      EEPROM.updateByte(questAddress, 1);
+#ifdef SERIALECHO
+      Serial.println("Here we go!! The quest begins now. Have fun!");
+#endif
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 1*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
     case 1:
       target.latitude = quest1.latitude;
@@ -133,7 +155,7 @@ void loop()
                    target.latitude,
                    target.longitude);
 #ifdef SERIALECHO
-      getQuestDistance();
+      printQuestDistance();
 #endif
       if (distance <= waypointTolerance) {
         lcd.clear();
@@ -149,11 +171,15 @@ void loop()
         currentQuest = EEPROM.read(questAddress);
       }
       else {
-          lcd.setCursor(0, 1);
-          lcd.print(F("Can you hear the"));
-          lcd.setCursor(0, 2);
-          lcd.print(F("music in the Valley?"));
-          smartDelay(2000);
+        lcd.setCursor(0, 1);
+        lcd.print(F("Can you hear the"));
+        lcd.setCursor(0, 2);
+        lcd.print(F("music in the Valley?"));
+        smartDelay(2000);
+
+        if (distanceClue)
+          lcdPrintQuestDistance();
+
 #ifdef SERIALECHO
         Serial.println(F("Can you hear the music in the Valley?"));
         Serial.println(F("Go to where you first met in the Valley and get a beer!"));
@@ -171,7 +197,7 @@ void loop()
                    target.latitude,
                    target.longitude);
 #ifdef SERIALECHO
-      getQuestDistance();
+      printQuestDistance();
 #endif
       if (distance <= waypointTolerance * 3) {
         lcd.clear();
@@ -187,16 +213,20 @@ void loop()
         currentQuest = EEPROM.read(questAddress);
       }
       else {
-          lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print(F("Remember the Bounty"));
-          lcd.setCursor(6, 1);
-          lcd.print(F("Hunter?"));
-          lcd.setCursor(3, 2);
-          lcd.print(F("Its now time to"));
-          lcd.setCursor(3, 3);
-          lcd.print(F("catch another!!"));
-          smartDelay(2000);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(F("Remember the Bounty"));
+        lcd.setCursor(6, 1);
+        lcd.print(F("Hunter?"));
+        lcd.setCursor(3, 2);
+        lcd.print(F("Its now time to"));
+        lcd.setCursor(3, 3);
+        lcd.print(F("catch another!!"));
+        smartDelay(2000);
+
+        if (distanceClue)
+          lcdPrintQuestDistance();
+
 #ifdef SERIALECHO
         Serial.println(F("Remember the Bounty Hunter?"));
         Serial.println(F("Its now time to catch another!"));
@@ -214,7 +244,7 @@ void loop()
                    target.latitude,
                    target.longitude);
 #ifdef SERIALECHO
-      getQuestDistance();
+      printQuestDistance();
 #endif
       if (distance <= waypointTolerance * 15) {
         lcd.clear();
@@ -230,16 +260,20 @@ void loop()
         currentQuest = EEPROM.read(questAddress);
       }
       else {
-          lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print(F("Nothing beats a bit"));
-          lcd.setCursor(0, 1);
-          lcd.print(F("of sand, surf & sun!"));
-          lcd.setCursor(2, 2);
-          lcd.print(F("(Don't forget the"));
-          lcd.setCursor(4, 3);
-          lcd.print(F("ice cream!)"));
-          smartDelay(2000);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(F("Nothing beats a bit"));
+        lcd.setCursor(0, 1);
+        lcd.print(F("of sand, surf & sun!"));
+        lcd.setCursor(2, 2);
+        lcd.print(F("(Don't forget the"));
+        lcd.setCursor(4, 3);
+        lcd.print(F("ice cream!)"));
+        smartDelay(2000);
+
+        if (distanceClue)
+          lcdPrintQuestDistance();
+
 #ifdef SERIALECHO
         Serial.println(F("Nothing beats a bit of sand surf & sun"));
         Serial.println(F("(Don't forget the ice cream!)"));
@@ -257,7 +291,7 @@ void loop()
                    target.latitude,
                    target.longitude);
 #ifdef SERIALECHO
-      getQuestDistance();
+      printQuestDistance();
 #endif
       if (distance <= waypointTolerance * 5) {
         lcd.clear();
@@ -273,16 +307,20 @@ void loop()
         currentQuest = EEPROM.read(questAddress);
       }
       else {
-          lcd.clear();
-          lcd.setCursor(2, 0);
-          lcd.print(F("The truth is - "));
-          lcd.setCursor(3, 1);
-          lcd.print(F("The Honeymoon"));
-          lcd.setCursor(7, 2);
-          lcd.print(F("NEVER"));
-          lcd.setCursor(8, 3);
-          lcd.print(F("ends! :D"));
-          smartDelay(2000);
+        lcd.clear();
+        lcd.setCursor(2, 0);
+        lcd.print(F("The truth is - "));
+        lcd.setCursor(3, 1);
+        lcd.print(F("The Honeymoon"));
+        lcd.setCursor(7, 2);
+        lcd.print(F("NEVER"));
+        lcd.setCursor(8, 3);
+        lcd.print(F("ends! :D"));
+        smartDelay(2000);
+
+        if (distanceClue)
+          lcdPrintQuestDistance();
+
 #ifdef SERIALECHO
         Serial.println(F("The truth is - "));
         Serial.println(F("The Honeymoon NEVER ends! :D"));
@@ -300,7 +338,7 @@ void loop()
                    target.latitude,
                    target.longitude);
 #ifdef SERIALECHO
-      getQuestDistance();
+      printQuestDistance();
 #endif
       if (distance <= waypointTolerance) {
         lcd.clear();
@@ -318,16 +356,20 @@ void loop()
         EEPROM.updateByte(currentAttempts, 0);
         currentQuest = EEPROM.read(questAddress);
         smartDelay(2000);
+
+        if (distanceClue)
+          lcdPrintQuestDistance();
+
       }
       else {
-          lcd.clear();
-          lcd.setCursor(3, 0);
-          lcd.print(F("Home is where"));
-          lcd.setCursor(3, 1);
-          lcd.print(F("the heart is."));
-          lcd.setCursor(0, 3);
-          lcd.print(F("Its time to go home!"));
-          smartDelay(2000);
+        lcd.clear();
+        lcd.setCursor(3, 0);
+        lcd.print(F("Home is where"));
+        lcd.setCursor(3, 1);
+        lcd.print(F("the heart is."));
+        lcd.setCursor(0, 3);
+        lcd.print(F("Its time to go home!"));
+        smartDelay(2000);
 #ifdef SERIALECHO
         Serial.println(F("Its time to go home!"));
 #endif
