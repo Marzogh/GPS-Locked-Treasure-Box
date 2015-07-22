@@ -1,16 +1,4 @@
-void setLocations()
-{
-  quest1.latitude  = -27.457927;
-  quest1.longitude = 153.034287;
-  quest2.latitude  = -27.383030;
-  quest2.longitude = 153.032767;
-  quest3.latitude  = -26.668923;
-  quest3.longitude = 153.107244;
-  quest4.latitude  = -26.689649;
-  quest4.longitude = 152.892891;
-  quest5.latitude  = -27.391034;
-  quest5.longitude = 153.008227;
-}
+
 void displayInfo()
 {
   Serial.print(F("Location: "));

@@ -13,10 +13,10 @@
 
 //Pins, Definitions & Constants
 //#define GPSECHO
-#define SERIALECHO
+//#define SERIALECHO
 #define waypointTolerance  200             // Tolerance in meters to quest; once within this tolerance, will advance to the next quest
-#define maxAttempts 25                     // Maximum number of attempts before distance to target is displayed
-//const int lidSensor = 5;                   // Pin connected to lid open sensor
+#define maxAttempts 10                     // Maximum number of attempts before distance to target is displayed
+#define questReset 7                       // Connecting this pin to GND and pressing the Reset button on the board resets the quest counter.
 const int servoPin = 9;
 Servo lock;
 const byte engage = 0, disengage = 180;
@@ -56,7 +56,7 @@ dateTime current;
 dateTime past;
 dateTime timeElapsed;
 
-unsigned long distance;
+float distance;
 byte currentQuest, attempts;
 byte questAddress, yearAddress, monthAddress, dateAddress,
      currentAttempts, quest1Attempts, quest2Attempts, quest3Attempts, quest4Attempts, quest5Attempts,
@@ -74,21 +74,24 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Setup*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 void setup()
-{
-  setLocations();
-
+{  
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
 #ifdef SERIALECHO
   Serial.begin(115200);
 #endif
+
+  getAddresses();
+  pinMode(questReset, INPUT_PULLUP);
+  if (digitalRead(questReset) == LOW)
+    checkForReset();
+
+  currentQuest = EEPROM.read(questAddress);
 
   ss.begin(9600);
   lock.attach(servoPin);
   lock.write(engage);
   startLCD();
-
-  getAddresses();
-
-  currentQuest = EEPROM.read(questAddress);
 
 #ifdef SERIALECHO
   Serial.print (F("The current quest is: Quest "));
@@ -96,7 +99,7 @@ void setup()
 #endif
 
   lcd.clear();
-  if (currentQuest < 6) {
+  if (currentQuest >0 && currentQuest < 6) {
     char printBuffer[8];
     sprintf(printBuffer, "Quest %d", currentQuest);
     lcd.setCursor(0, 0);
@@ -128,23 +131,29 @@ void loop()
   updateDateTime();
   switch (currentQuest) {
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 0*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 100:
-      EEPROM.updateByte(questAddress, 0);
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 0*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
     case 0:
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print(F("5 quests to go, with"));
       lcd.setCursor(0, 1);
       lcd.print(F("fond memories galore"));
-      lcd.setCursor(1, 2);
-      lcd.print(F("Hope you have fun!"));
-      lcd.setCursor(0, 3);
+      lcd.setCursor(0, 2);
+      lcd.print(F("......"));
+      smartDelay(3000);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(F("Have lots of fun on the way!"));
+      smartDelay(3000);
+      lcd.clear();
+      lcd.setCursor(0, 0);
       lcd.print(F("Here we go...."));
       EEPROM.updateByte(questAddress, 1);
+      currentQuest = EEPROM.read(questAddress);
+      smartDelay(3000);
 #ifdef SERIALECHO
       Serial.println("Here we go!! The quest begins now. Have fun!");
 #endif
+      break;
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 1*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
     case 1:
       target.latitude = quest1.latitude;
@@ -171,9 +180,10 @@ void loop()
         currentQuest = EEPROM.read(questAddress);
       }
       else {
-        lcd.setCursor(0, 1);
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print(F("Can you hear the"));
-        lcd.setCursor(0, 2);
+        lcd.setCursor(0, 1);
         lcd.print(F("music in the Valley?"));
         smartDelay(2000);
 
@@ -397,12 +407,12 @@ void loop()
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Default*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
     default:
+      EEPROM.updateByte(questAddress, 0);
       lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(F("Waiting for GPS"));
-#ifdef SERIALECHO
-      Serial.println(F("Waiting for GPS"));
-#endif
+      lcd.setCursor(2, 0);
+      lcd.print(F("GPS Treasure Box"));
+      lcd.setCursor(7, 2);
+      lcd.print(F("Mark I"));
       break;
   }
   smartDelay(2000);

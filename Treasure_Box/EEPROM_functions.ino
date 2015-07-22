@@ -20,8 +20,20 @@ void getAddresses()
   quest3Attempts = EEPROM.getAddress(sizeof(byte));
   quest4Attempts = EEPROM.getAddress(sizeof(byte));
   quest5Attempts = EEPROM.getAddress(sizeof(byte));
+  distanceClueBoolean = EEPROM.getAddress(sizeof(byte));
 
-  #ifdef SERIALECHO
+  quest1.latitude  = EEPROM.readDouble(Address1.latitude);
+  quest1.longitude = EEPROM.readDouble(Address1.longitude);
+  quest2.latitude  = EEPROM.readDouble(Address2.latitude);
+  quest2.longitude = EEPROM.readDouble(Address2.longitude);
+  quest3.latitude  = EEPROM.readDouble(Address3.latitude);
+  quest3.longitude = EEPROM.readDouble(Address3.longitude);
+  quest4.latitude  = EEPROM.readDouble(Address4.latitude);
+  quest4.longitude = EEPROM.readDouble(Address4.longitude);
+  quest5.latitude  = EEPROM.readDouble(Address5.latitude);
+  quest5.longitude = EEPROM.readDouble(Address5.longitude);
+
+#ifdef SERIALECHO
   Serial.println(questAddress);
   Serial.println(yearAddress);
   Serial.println(monthAddress);
@@ -42,7 +54,16 @@ void getAddresses()
   Serial.println(quest3Attempts);
   Serial.println(quest4Attempts);
   Serial.println(quest5Attempts);
-  #endif
+  Serial.println(distanceClueBoolean);
+#endif
+}
+
+void checkForReset()
+{
+  EEPROM.updateByte(questAddress, 100);
+  EEPROM.updateByte(currentAttempts, 0);
+  EEPROM.updateBit(distanceClueBoolean, 0, 0);
+  blinkLED(5);
 }
 
 /*bool coordinateCheck()

@@ -19,29 +19,38 @@ void startLCD()
 
 void lcdPrintQuestDistance()
 {
-  float d;
-  char charBuffer[25];
+  char charBuffer[25], str_dist[6];
   bool km;
   lcd.clear();
-  lcd.setCursor(0, 0);
+  lcd.setCursor(0, 1);
 
   if (distance > 1100) {
-    d = distance / 1000;
+    dtostrf(distance/1000, 4, 2, str_dist);
+#ifdef SERIALECHO
+    Serial.print(F("Distance to target: "));
+    Serial.print(str_dist);
+    Serial.println(F(" km"));
+#endif
     km = 1;
   }
   else {
-    d = distance;
     km = 0;
+    dtostrf(distance, 4, 2, str_dist);
+#ifdef SERIALECHO
+    Serial.print(F("Distance to target: "));
+    Serial.print(str_dist);
+    Serial.println(F(" km"));
+#endif
   }
-  sprintf(charBuffer, "You are now %d ", d);
-  lcd.print(F("charBuffer"));
+  sprintf(charBuffer, "You are now %s ", str_dist);
+  lcd.print(charBuffer);
 
   if (km = 1)
     lcd.print(F("km"));
   else
     lcd.print(F("m"));
 
-  lcd.setCursor(0, 1);
+  lcd.setCursor(0, 2);
   lcd.print(F(" from your target"));
 
   smartDelay(2000);

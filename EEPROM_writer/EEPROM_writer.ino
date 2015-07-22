@@ -119,7 +119,7 @@ void updateValues()
   EEPROM.updateByte(quest3Attempts, resetAttempts);
   EEPROM.updateByte(quest4Attempts, resetAttempts);
   EEPROM.updateByte(quest5Attempts, resetAttempts);
-  EEPROM.updateByte(distanceClueBoolean, 0);
+  EEPROM.updateBit(distanceClueBoolean, 0, 0);
 
   Serial.println("Values");
   Serial.println(EEPROM.readByte(questAddress));

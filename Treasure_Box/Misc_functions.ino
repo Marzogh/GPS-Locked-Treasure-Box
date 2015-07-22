@@ -13,6 +13,16 @@ void printQuestDistance()
   Serial.println(F("m"));
 }
 
+void blinkLED(int times)
+{
+  for (int i = 0; i <= times ; ++i)
+  {
+    digitalWrite(13, HIGH);
+    smartDelay(100);
+    digitalWrite(13, LOW);
+  }
+}
+
 
 /*#ifndef Lock
 void blinkLED(uint8_t times, uint16_t wait)
