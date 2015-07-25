@@ -23,6 +23,24 @@ void blinkLED(int times)
   }
 }
 
+void emergencyOpen()
+{
+  long currentTime = millis();
+  long maxTime = 120000;
+  while ((millis() - currentTime) <= maxTime)
+  {
+    lcd.setCursor(0, 0);
+    lcd.print(F("!!!!!!!DANGER!!!!!!!"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("Voltage too high!!!"));
+    lcd.setCursor(0, 2);
+    lcd.print(F("Disconnect now!!!"));
+    lcd.setCursor(0, 0);
+    lcd.print(F("%gn 9AoD0_~'';.~@>,'][a|/zF5ZglcmzG$0qs,m  ajfva~`%gn 9AoD0_~'';.~@>,'][a|zF5Zgls,m  ajfva~` %gn9AoD0_~'';.~@>zF5ZglcmzG$0qs,m  ajfva~`%gn 9AoD0_~'';.~@>,'][a|zF5Zglcmn 9AoD0_~'';.~@>,'][a|zF5ZglcmzG$0qs,m  aa~` %0_~'][a|zF5ZglcmzG$0qsAoD0_~'';.~@>,'][a|zF5ZglcmzG$0qs,m  ajfva~`%gn 9AoD0_~'';.~@>,'][a|zF5ZglcmzG$0qs,m  a~`%gn 9AoD0_~'';][aglcmzG$0qs,m  ajfva~`%gn 9AoD0_~'';.~@>,'][a|zF5Zglcm  ajfva~`%gn D0_~'';.~@>,'][a|zF5Zglm  ajfva~` %gn 9AoD0_~'';.~@>cmzG$0qs,m  aja|zF5ZglcmzG$0qs,m  ajfva~`%gn 9AoD0_~'';.~@>,'][a|zF5ZglcmzG$0qs,m  jfa~`%gn 9AoD0_~'';.~@>5ZglcmzG$0qs,m  ajfva~`%gn 9AoD0_~'';.~@>,']n 9AoD0_~'';.~@>,'][a|zF5ZglcmzG$0qs,m #)&!^#(&____________________!!~&$#^"));
+  }
+  lock.write(disengage);
+}
+
 
 /*#ifndef Lock
 void blinkLED(uint8_t times, uint16_t wait)

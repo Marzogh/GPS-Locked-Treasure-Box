@@ -16,7 +16,9 @@
 //#define SERIALECHO
 #define waypointTolerance  200             // Tolerance in meters to quest; once within this tolerance, will advance to the next quest
 #define maxAttempts 10                     // Maximum number of attempts before distance to target is displayed
-#define questReset 7                       // Connecting this pin to GND and pressing the Reset button on the board resets the quest counter.
+#define questResetPin 4                    // Connecting this pin to GND and pressing the Reset button on the board resets the quest counter.
+#define IOPin 5                            // This pin is connected to the off pin of the Pololu pushbutton switch to turn off the system
+#define emergencyOpenPin 6                 // Using the built in backdoor entry pushes this pin high causing the lock to open after two minutes
 const int servoPin = 9;
 Servo lock;
 const byte engage = 0, disengage = 180;
@@ -74,16 +76,18 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Setup*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 void setup()
-{  
+{
   pinMode(13, OUTPUT);
+  pinMode(IOPin, OUTPUT);
+  digitalWrite(IOPin, LOW);
   digitalWrite(13, LOW);
 #ifdef SERIALECHO
   Serial.begin(115200);
 #endif
 
   getAddresses();
-  pinMode(questReset, INPUT_PULLUP);
-  if (digitalRead(questReset) == LOW)
+  pinMode(questResetPin, INPUT_PULLUP);
+  if (digitalRead(questResetPin) == LOW)
     checkForReset();
 
   currentQuest = EEPROM.read(questAddress);
@@ -93,13 +97,17 @@ void setup()
   lock.write(engage);
   startLCD();
 
+  pinMode(emergencyOpenPin, INPUT_PULLUP);
+  if (digitalRead(emergencyOpenPin) == LOW)
+    emergencyOpen();
+
 #ifdef SERIALECHO
   Serial.print (F("The current quest is: Quest "));
   Serial.println(currentQuest);
 #endif
 
   lcd.clear();
-  if (currentQuest >0 && currentQuest < 6) {
+  if (currentQuest > 0 && currentQuest < 6) {
     char printBuffer[8];
     sprintf(printBuffer, "Quest %d", currentQuest);
     lcd.setCursor(0, 0);
@@ -128,305 +136,309 @@ void setup()
 void loop()
 {
   distanceClue = EEPROM.readBit(distanceClueBoolean, 0);
-  updateDateTime();
-  switch (currentQuest) {
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 0*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 0:
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(F("5 quests to go, with"));
-      lcd.setCursor(0, 1);
-      lcd.print(F("fond memories galore"));
-      lcd.setCursor(0, 2);
-      lcd.print(F("......"));
-      smartDelay(3000);
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(F("Have lots of fun on the way!"));
-      smartDelay(3000);
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(F("Here we go...."));
-      EEPROM.updateByte(questAddress, 1);
-      currentQuest = EEPROM.read(questAddress);
-      smartDelay(3000);
-#ifdef SERIALECHO
-      Serial.println("Here we go!! The quest begins now. Have fun!");
-#endif
-      break;
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 1*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 1:
-      target.latitude = quest1.latitude;
-      target.longitude = quest1.longitude;
-      distance = (unsigned long)TinyGPSPlus::distanceBetween(
-                   gps.location.lat(),
-                   gps.location.lng(),
-                   target.latitude,
-                   target.longitude);
-#ifdef SERIALECHO
-      printQuestDistance();
-#endif
-      if (distance <= waypointTolerance) {
+  updateDate();
+  int repeats = 0;
+  do {
+    switch (currentQuest) {
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 0*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 0:
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print(F("Quest 1 complete!"));
-        smartDelay(2000);
-#ifdef SERIALECHO
-        Serial.println(F("Quest 1 complete!"));
-#endif
-        EEPROM.updateByte(questAddress, 2);
-        EEPROM.updateByte(quest1Attempts, attempts);
-        EEPROM.updateByte(currentAttempts, 0);
-        currentQuest = EEPROM.read(questAddress);
-      }
-      else {
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print(F("Can you hear the"));
+        lcd.print(F("5 quests to go, with"));
         lcd.setCursor(0, 1);
-        lcd.print(F("music in the Valley?"));
-        smartDelay(2000);
-
-        if (distanceClue)
-          lcdPrintQuestDistance();
-
-#ifdef SERIALECHO
-        Serial.println(F("Can you hear the music in the Valley?"));
-        Serial.println(F("Go to where you first met in the Valley and get a beer!"));
-#endif
-      }
-      break;
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 2*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 2:
-      target.latitude = quest2.latitude;
-      target.longitude = quest2.longitude;
-      distance = (unsigned long)TinyGPSPlus::distanceBetween(
-                   gps.location.lat(),
-                   gps.location.lng(),
-                   target.latitude,
-                   target.longitude);
-#ifdef SERIALECHO
-      printQuestDistance();
-#endif
-      if (distance <= waypointTolerance * 3) {
+        lcd.print(F("fond memories galore"));
+        lcd.setCursor(0, 2);
+        lcd.print(F("......"));
+        smartDelay(3000);
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print(F("Quest 2 complete!"));
-        smartDelay(2000);
-#ifdef SERIALECHO
-        Serial.println(F("Quest 2 complete!"));
-#endif
-        EEPROM.updateByte(questAddress, 3);
-        EEPROM.updateByte(quest2Attempts, attempts);
-        EEPROM.updateByte(currentAttempts, 0);
+        lcd.print(F("Have lots of fun on the way!"));
+        smartDelay(3000);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(F("Here we go...."));
+        EEPROM.updateByte(questAddress, 1);
         currentQuest = EEPROM.read(questAddress);
-      }
-      else {
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print(F("Remember the Bounty"));
-        lcd.setCursor(6, 1);
-        lcd.print(F("Hunter?"));
-        lcd.setCursor(3, 2);
-        lcd.print(F("Its now time to"));
-        lcd.setCursor(3, 3);
-        lcd.print(F("catch another!!"));
-        smartDelay(2000);
+        smartDelay(3000);
+#ifdef SERIALECHO
+        Serial.println("Here we go!! The quest begins now. Have fun!");
+#endif
+        break;
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 1*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 1:
+        target.latitude = quest1.latitude;
+        target.longitude = quest1.longitude;
+        distance = (unsigned long)TinyGPSPlus::distanceBetween(
+                     gps.location.lat(),
+                     gps.location.lng(),
+                     target.latitude,
+                     target.longitude);
+#ifdef SERIALECHO
+        printQuestDistance();
+#endif
+        if (distance <= waypointTolerance) {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Quest 1 complete!"));
+          smartDelay(2000);
+#ifdef SERIALECHO
+          Serial.println(F("Quest 1 complete!"));
+#endif
+          EEPROM.updateByte(questAddress, 2);
+          EEPROM.updateByte(quest1Attempts, attempts);
+          EEPROM.updateByte(currentAttempts, 0);
+          currentQuest = EEPROM.read(questAddress);
+        }
+        else {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Can you hear the"));
+          lcd.setCursor(0, 1);
+          lcd.print(F("music in the Valley?"));
+          smartDelay(2000);
 
-        if (distanceClue)
-          lcdPrintQuestDistance();
+          if (distanceClue)
+            lcdPrintQuestDistance();
 
 #ifdef SERIALECHO
-        Serial.println(F("Remember the Bounty Hunter?"));
-        Serial.println(F("Its now time to catch another!"));
+          Serial.println(F("Can you hear the music in the Valley?"));
+          Serial.println(F("Go to where you first met in the Valley and get a beer!"));
 #endif
-      }
-      break;
+        }
+        break;
 
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 3*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 3:
-      target.latitude = quest3.latitude;
-      target.longitude = quest3.longitude;
-      distance = (unsigned long)TinyGPSPlus::distanceBetween(
-                   gps.location.lat(),
-                   gps.location.lng(),
-                   target.latitude,
-                   target.longitude);
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 2*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 2:
+        target.latitude = quest2.latitude;
+        target.longitude = quest2.longitude;
+        distance = (unsigned long)TinyGPSPlus::distanceBetween(
+                     gps.location.lat(),
+                     gps.location.lng(),
+                     target.latitude,
+                     target.longitude);
 #ifdef SERIALECHO
-      printQuestDistance();
+        printQuestDistance();
 #endif
-      if (distance <= waypointTolerance * 15) {
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print(F("Quest 3 complete!"));
-        smartDelay(2000);
+        if (distance <= waypointTolerance * 3) {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Quest 2 complete!"));
+          smartDelay(2000);
 #ifdef SERIALECHO
-        Serial.println(F("Quest 3 complete!"));
+          Serial.println(F("Quest 2 complete!"));
 #endif
-        EEPROM.updateByte(questAddress, 4);
-        EEPROM.updateByte(quest3Attempts, attempts);
-        EEPROM.updateByte(currentAttempts, 0);
-        currentQuest = EEPROM.read(questAddress);
-      }
-      else {
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print(F("Nothing beats a bit"));
-        lcd.setCursor(0, 1);
-        lcd.print(F("of sand, surf & sun!"));
-        lcd.setCursor(2, 2);
-        lcd.print(F("(Don't forget the"));
-        lcd.setCursor(4, 3);
-        lcd.print(F("ice cream!)"));
-        smartDelay(2000);
+          EEPROM.updateByte(questAddress, 3);
+          EEPROM.updateByte(quest2Attempts, attempts);
+          EEPROM.updateByte(currentAttempts, 0);
+          currentQuest = EEPROM.read(questAddress);
+        }
+        else {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Remember the Bounty"));
+          lcd.setCursor(6, 1);
+          lcd.print(F("Hunter?"));
+          lcd.setCursor(3, 2);
+          lcd.print(F("Its now time to"));
+          lcd.setCursor(3, 3);
+          lcd.print(F("catch another!!"));
+          smartDelay(2000);
 
-        if (distanceClue)
-          lcdPrintQuestDistance();
-
-#ifdef SERIALECHO
-        Serial.println(F("Nothing beats a bit of sand surf & sun"));
-        Serial.println(F("(Don't forget the ice cream!)"));
-#endif
-      }
-      break;
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 4*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 4:
-      target.latitude = quest4.latitude;
-      target.longitude = quest4.longitude;
-      distance = (unsigned long)TinyGPSPlus::distanceBetween(
-                   gps.location.lat(),
-                   gps.location.lng(),
-                   target.latitude,
-                   target.longitude);
-#ifdef SERIALECHO
-      printQuestDistance();
-#endif
-      if (distance <= waypointTolerance * 5) {
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print(F("Quest 4 complete!"));
-        smartDelay(2000);
-#ifdef SERIALECHO
-        Serial.println(F("Quest 4 complete!"));
-#endif
-        EEPROM.updateByte(questAddress, 5);
-        EEPROM.updateByte(quest4Attempts, attempts);
-        EEPROM.updateByte(currentAttempts, 0);
-        currentQuest = EEPROM.read(questAddress);
-      }
-      else {
-        lcd.clear();
-        lcd.setCursor(2, 0);
-        lcd.print(F("The truth is - "));
-        lcd.setCursor(3, 1);
-        lcd.print(F("The Honeymoon"));
-        lcd.setCursor(7, 2);
-        lcd.print(F("NEVER"));
-        lcd.setCursor(8, 3);
-        lcd.print(F("ends! :D"));
-        smartDelay(2000);
-
-        if (distanceClue)
-          lcdPrintQuestDistance();
+          if (distanceClue)
+            lcdPrintQuestDistance();
 
 #ifdef SERIALECHO
-        Serial.println(F("The truth is - "));
-        Serial.println(F("The Honeymoon NEVER ends! :D"));
+          Serial.println(F("Remember the Bounty Hunter?"));
+          Serial.println(F("Its now time to catch another!"));
 #endif
-      }
-      break;
+        }
+        break;
 
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 5*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 5:
-      target.latitude = quest5.latitude;
-      target.longitude = quest5.longitude;
-      distance = (unsigned long)TinyGPSPlus::distanceBetween(
-                   gps.location.lat(),
-                   gps.location.lng(),
-                   target.latitude,
-                   target.longitude);
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 3*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 3:
+        target.latitude = quest3.latitude;
+        target.longitude = quest3.longitude;
+        distance = (unsigned long)TinyGPSPlus::distanceBetween(
+                     gps.location.lat(),
+                     gps.location.lng(),
+                     target.latitude,
+                     target.longitude);
 #ifdef SERIALECHO
-      printQuestDistance();
+        printQuestDistance();
 #endif
-      if (distance <= waypointTolerance) {
-        lcd.clear();
-        lcd.setCursor(5, 1);
-        lcd.print(F("Woohoo!!!"));
-        lcd.setCursor(1, 2);
-        lcd.print(F("Congratulations!!!"));
+        if (distance <= waypointTolerance * 15) {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Quest 3 complete!"));
+          smartDelay(2000);
+#ifdef SERIALECHO
+          Serial.println(F("Quest 3 complete!"));
+#endif
+          EEPROM.updateByte(questAddress, 4);
+          EEPROM.updateByte(quest3Attempts, attempts);
+          EEPROM.updateByte(currentAttempts, 0);
+          currentQuest = EEPROM.read(questAddress);
+        }
+        else {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Nothing beats a bit"));
+          lcd.setCursor(0, 1);
+          lcd.print(F("of sand, surf & sun!"));
+          lcd.setCursor(2, 2);
+          lcd.print(F("(Don't forget the"));
+          lcd.setCursor(4, 3);
+          lcd.print(F("ice cream!)"));
+          smartDelay(2000);
+
+          if (distanceClue)
+            lcdPrintQuestDistance();
+
+#ifdef SERIALECHO
+          Serial.println(F("Nothing beats a bit of sand surf & sun"));
+          Serial.println(F("(Don't forget the ice cream!)"));
+#endif
+        }
+        break;
+
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 4*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 4:
+        target.latitude = quest4.latitude;
+        target.longitude = quest4.longitude;
+        distance = (unsigned long)TinyGPSPlus::distanceBetween(
+                     gps.location.lat(),
+                     gps.location.lng(),
+                     target.latitude,
+                     target.longitude);
+#ifdef SERIALECHO
+        printQuestDistance();
+#endif
+        if (distance <= waypointTolerance * 5) {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print(F("Quest 4 complete!"));
+          smartDelay(2000);
+#ifdef SERIALECHO
+          Serial.println(F("Quest 4 complete!"));
+#endif
+          EEPROM.updateByte(questAddress, 5);
+          EEPROM.updateByte(quest4Attempts, attempts);
+          EEPROM.updateByte(currentAttempts, 0);
+          currentQuest = EEPROM.read(questAddress);
+        }
+        else {
+          lcd.clear();
+          lcd.setCursor(2, 0);
+          lcd.print(F("The truth is - "));
+          lcd.setCursor(3, 1);
+          lcd.print(F("The Honeymoon"));
+          lcd.setCursor(7, 2);
+          lcd.print(F("NEVER"));
+          lcd.setCursor(8, 3);
+          lcd.print(F("ends! :D"));
+          smartDelay(2000);
+
+          if (distanceClue)
+            lcdPrintQuestDistance();
+
+#ifdef SERIALECHO
+          Serial.println(F("The truth is - "));
+          Serial.println(F("The Honeymoon NEVER ends! :D"));
+#endif
+        }
+        break;
+
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 5*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 5:
+        target.latitude = quest5.latitude;
+        target.longitude = quest5.longitude;
+        distance = (unsigned long)TinyGPSPlus::distanceBetween(
+                     gps.location.lat(),
+                     gps.location.lng(),
+                     target.latitude,
+                     target.longitude);
+#ifdef SERIALECHO
+        printQuestDistance();
+#endif
+        if (distance <= waypointTolerance) {
+          lcd.clear();
+          lcd.setCursor(5, 1);
+          lcd.print(F("Woohoo!!!"));
+          lcd.setCursor(1, 2);
+          lcd.print(F("Congratulations!!!"));
+          lock.write(disengage);
+          smartDelay(2000);
+#ifdef SERIALECHO
+          Serial.println(F("All quests completed successfully!!!"));
+#endif
+          EEPROM.updateByte(questAddress, 6);
+          EEPROM.updateByte(quest5Attempts, attempts);
+          EEPROM.updateByte(currentAttempts, 0);
+          currentQuest = EEPROM.read(questAddress);
+          smartDelay(2000);
+
+          if (distanceClue)
+            lcdPrintQuestDistance();
+
+        }
+        else {
+          lcd.clear();
+          lcd.setCursor(3, 0);
+          lcd.print(F("Home is where"));
+          lcd.setCursor(3, 1);
+          lcd.print(F("the heart is."));
+          lcd.setCursor(0, 3);
+          lcd.print(F("Its time to go home!"));
+          smartDelay(2000);
+#ifdef SERIALECHO
+          Serial.println(F("Its time to go home!"));
+#endif
+        }
+        break;
+
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 6*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      case 6:
         lock.write(disengage);
-        smartDelay(2000);
-#ifdef SERIALECHO
-        Serial.println(F("All quests completed successfully!!!"));
-#endif
-        EEPROM.updateByte(questAddress, 6);
-        EEPROM.updateByte(quest5Attempts, attempts);
-        EEPROM.updateByte(currentAttempts, 0);
-        currentQuest = EEPROM.read(questAddress);
-        smartDelay(2000);
-
-        if (distanceClue)
-          lcdPrintQuestDistance();
-
-      }
-      else {
         lcd.clear();
         lcd.setCursor(3, 0);
-        lcd.print(F("Home is where"));
-        lcd.setCursor(3, 1);
-        lcd.print(F("the heart is."));
+        lcd.print(F("You have been"));
+        lcd.setCursor(5, 1);
+        lcd.print(F("married for"));
+        timeSince();                    // Calculates and prints time elapsed since event on LCD
+        char printBuffer[21];
+        sprintf(printBuffer, "%d years, %d months", timeElapsed.Year, timeElapsed.Month);
+        lcd.setCursor(2, 2);
+        lcd.print(printBuffer);
+        sprintf(printBuffer, "     & %d days      ", timeElapsed.Date);
         lcd.setCursor(0, 3);
-        lcd.print(F("Its time to go home!"));
+        lcd.print(printBuffer);
         smartDelay(2000);
-#ifdef SERIALECHO
-        Serial.println(F("Its time to go home!"));
-#endif
-      }
-      break;
+        break;
 
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Quest 6*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    case 6:
-      lock.write(disengage);
-      lcd.clear();
-      lcd.setCursor(3, 0);
-      lcd.print(F("You have been"));
-      lcd.setCursor(5, 1);
-      lcd.print(F("married for"));
-      timeSince();                    // Calculates and prints time elapsed since event on LCD
-      char printBuffer[21];
-      sprintf(printBuffer, "%d years, %d months", timeElapsed.Year, timeElapsed.Month);
-      lcd.setCursor(2, 2);
-      lcd.print(printBuffer);
-      sprintf(printBuffer, "     & %d days      ", timeElapsed.Date);
-      lcd.setCursor(0, 3);
-      lcd.print(printBuffer);
-      smartDelay(2000);
-      break;
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Default*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-    default:
-      EEPROM.updateByte(questAddress, 0);
-      lcd.clear();
-      lcd.setCursor(2, 0);
-      lcd.print(F("GPS Treasure Box"));
-      lcd.setCursor(7, 2);
-      lcd.print(F("Mark I"));
-      break;
-  }
-  smartDelay(2000);
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*No GPS*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-  if (millis() > 5000 && gps.charsProcessed() < 10) {
-    lcd.clear();
-    lcd.setCursor(0, 1);
-    lcd.print(F("No GPS data received"));
-    lcd.setCursor(4, 2);
-    lcd.print(F("Check Wiring"));
+      //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*Default*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+      default:
+        EEPROM.updateByte(questAddress, 0);
+        lcd.clear();
+        lcd.setCursor(2, 0);
+        lcd.print(F("GPS Treasure Box"));
+        lcd.setCursor(7, 2);
+        lcd.print(F("Mark I"));
+        break;
+    }
     smartDelay(2000);
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*No GPS*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+    if (millis() > 5000 && gps.charsProcessed() < 10) {
+      lcd.clear();
+      lcd.setCursor(0, 1);
+      lcd.print(F("No GPS data received"));
+      lcd.setCursor(4, 2);
+      lcd.print(F("Check Wiring"));
+      smartDelay(2000);
 #ifdef SERIALECHO
-    Serial.println(F("No GPS data received: check wiring"));
+      Serial.println(F("No GPS data received: check wiring"));
 #endif
-  }
+    }
+  } while (repeats < 4);
+  digitalWrite(IOPin, HIGH);
 }
