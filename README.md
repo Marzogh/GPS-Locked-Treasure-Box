@@ -14,7 +14,7 @@ Once opened, the box will stay open unless reset, and just count up from the wed
 * I2C backpack for LCD                  -       $3
 * Wood entomological posting box        -       $10
 
-For power use on of the following options:
+For power source, use on of the following options:
 ######Option 1
 * 2200mAh USB powerbank                 -       $20
 
@@ -23,7 +23,7 @@ For power use on of the following options:
 * 2x Energiser Ultimate Lithium         -       $11
 * Pololu 5V step-up voltage regulator   -       $6
 
-For switching power use one of the following options:
+For switching power, use one of the following options:
 ######Option 1
 * Rocker switch with LED                -       $5
 
