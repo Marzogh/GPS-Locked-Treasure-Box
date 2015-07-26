@@ -5,7 +5,7 @@ A box that stays locked till it is taken to a specific location
 
 This puzzle box was made as a present for a cousin's wedding. The sole purpose of this box is to take the newlyweds on a a number of 'quests' to locations that are important to them. Once they have fulfilled all their quests, the box opens to reveal a small gift inside - however, as in life, it is the journey that counts, not the destination. :) 
 
-Once opened, the box will stay open unless reset, and just count up from the wedding date and display the time elapsed since the wedding everytime it is activated.
+Once opened, the box will stay open unless reset, and just count up from the wedding date and display the time elapsed since the wedding every time it is activated.
 
 ####Bill of Materials (Prices in AUD)
 * Arduino Pro-mini clone                -       $6
