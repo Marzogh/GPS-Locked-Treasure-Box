@@ -58,7 +58,7 @@ void getAddresses()
 #endif
 }
 
-void checkForReset()
+void resetAllEEPROM()
 {
   EEPROM.updateByte(questAddress, 100);
   EEPROM.updateByte(currentAttempts, 0);

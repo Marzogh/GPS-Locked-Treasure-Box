@@ -86,9 +86,15 @@ void setup()
 #endif
 
   getAddresses();
+<<<<<<< Updated upstream
   pinMode(questResetPin, INPUT_PULLUP);
   if (digitalRead(questResetPin) == LOW)
     checkForReset();
+=======
+  pinMode(questReset, INPUT_PULLUP);
+  if (digitalRead(questReset) == LOW)
+    resetAllEEPROM();
+>>>>>>> Stashed changes
 
   currentQuest = EEPROM.read(questAddress);
 
